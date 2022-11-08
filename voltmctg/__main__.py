@@ -1,7 +1,12 @@
 from pprint import pprint
 from sys import argv, exit
-import random
 from typing import TypeAlias
+import random
+
+from voltmctg.config import Config
+
+
+config: Config = Config()
 
 
 # Remove script name from args
@@ -13,8 +18,8 @@ if not len(argv):
     exit()
 
 
-ChanceTable: TypeAlias = dict[str, float]
-FollowingTable: TypeAlias = dict[str, ChanceTable]
+ChoiceMap: TypeAlias = dict[str, float]
+FollowingTable: TypeAlias = dict[str, ChoiceMap]
 
 
 WORD_END: str = "\0"
@@ -24,7 +29,7 @@ samples_analysed: int = 0
 
 appearances: dict[str, int] = {}
 mappings: FollowingTable = {}
-starting_characters: ChanceTable = {}
+starting_characters: ChoiceMap = {}
 
 min_size: int = -1
 max_size: int = -1
@@ -46,7 +51,8 @@ def consider_size(size: int) -> None:
 
 
 def consider_starting_character(char: str) -> None:
-    char = char.lower()
+    if not config.case_sensitive:
+        char = char.lower()
 
     if not char in starting_characters:
         starting_characters[char] = 0.0
@@ -55,8 +61,9 @@ def consider_starting_character(char: str) -> None:
 
 
 def consider_segment(base: str, sequence: str) -> None:
-    base = base.lower()
-    sequence = sequence.lower()
+    if not config.case_sensitive:
+        base = base.lower()
+        sequence = sequence.lower()
 
     if not base in mappings:
         appearances[base] = 0
@@ -92,17 +99,29 @@ def sample_text(sample: str) -> None:
 
     sample_size: int = len(sample)
 
+    if sample_size < 2:
+        if config.enable_warnings:
+            print("[Warning] Invalid sample size found. Skipping.")
+
+        return
+
     consider_size(sample_size)
     consider_starting_character(sample[0])
 
-    for segment_size in range(2, sample_size):
-        for i in range(sample_size - 1):
-            consider_segment(sample[i], sample[i + 1])
+    for segment_size in range(1, (
+        sample_size if config.max_markov_size == -1
+        else min(config.max_markov_size + 1, sample_size)
+    )):
+        for i in range(sample_size - segment_size):
+            consider_segment(
+                sample[i : i + segment_size],
+                sample[i + segment_size]
+            )
 
     samples_analysed += 1
 
 
-def pick_random_char(choice_map: dict[str, float]) -> str:
+def pick_random_char(choice_map: ChoiceMap) -> str:
     threshold: float = random.random()
 
     for char in choice_map.keys():
@@ -118,13 +137,48 @@ def pick_random_char(choice_map: dict[str, float]) -> str:
 def generate() -> str:
     result: str = pick_random_char(starting_characters)
 
+    if config.debug_mode:
+        print("Generation steps:")
+        print(result)
+
     while len(result) < max_size:
-        result += pick_random_char(mappings[result[-1]])
+        selection_amount: int = 0
+        selections: ChoiceMap = {}
+
+        # for i in range(len(result), len(result) + 1):
+        # BITCH IS BEING SKIPPED
+        for i in range(-min(len(result), config.max_markov_size), 0):
+            # result[-min(len(result), mk)] -> result[-1]
+            if result[i:] in mappings:
+                if config.debug_mode:
+                    print(
+                        f"Taking mappings from '{result[i:]}'"
+                        f" with i = {i} and result = {result}."
+                    )
+
+                selections |= mappings[result[i:]]
+                selection_amount += 1
+
+        for sequence in selections.keys():
+            selections[sequence] /= selection_amount
+
+        if config.debug_mode:
+            print(f"With selections:")
+            pprint(selections)
+
+        result += pick_random_char(selections)
+
+        if config.debug_mode and result[-1] != WORD_END:
+            print(f"Now len(result) = {len(result)}.")
+            print(f" > {result[-1]}")
 
         if result[-1] == WORD_END:
             break
 
-    return result
+    if config.debug_mode:
+        print()
+
+    return result[:-1] if result[-1] == WORD_END else result
 
 
 def view_debug_details() -> None:
@@ -147,6 +201,10 @@ def minimal_interpreter() -> None:
             view_debug_details()
         elif command == "generate":
             print(generate())
+        elif command == "settings":
+            config.show_settings()
+        else:
+            print(f"Command '{command}' not recognized.")
 
 
 try:
