@@ -85,7 +85,7 @@ def interpreter() -> None:
                 continue
 
             if amount < 1:
-                print("Amount for 'generate' must be greater than 1.")
+                print("Amount for 'generate' must be greater than 0.")
                 continue
 
             last_texts = []
