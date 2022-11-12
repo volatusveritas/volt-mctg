@@ -124,47 +124,49 @@ class MarkovChainTextGenerator:
         return ""
 
     def generate(self) -> str:
-        result: str = self.pick_random_char(self.starting_characters)
+        result: str = ""
 
-        if self.config.debug_mode:
-            print("Generation steps:")
-            print(result)
-
-        while len(result) < self.max_size:
-            selection_amount: int = 0
-            selections: ChoiceMap = {}
-
-            # for i in range(len(result), len(result) + 1):
-            # BITCH IS BEING SKIPPED
-            for i in range(-min(len(result), self.config.max_markov_size), 0):
-                # result[-min(len(result), mk)] -> result[-1]
-                if result[i:] in self.mappings:
-                    if self.config.debug_mode:
-                        print(
-                            f"Taking mappings from '{result[i:]}'"
-                            f" with i = {i} and result = {result}."
-                        )
-
-                    selections |= self.mappings[result[i:]]
-                    selection_amount += 1
-
-            for sequence in selections.keys():
-                selections[sequence] /= selection_amount
+        while len(result) < self.min_size:
+            result: str = self.pick_random_char(self.starting_characters)
 
             if self.config.debug_mode:
-                print(f"With selections:")
-                pprint(selections)
+                print("Generation steps:")
+                print(result)
 
-            result += self.pick_random_char(selections)
+            while len(result) < self.max_size:
+                selection_amount: int = 0
+                selections: ChoiceMap = {}
 
-            if self.config.debug_mode and result[-1] != WORD_END:
-                print(f"Now len(result) = {len(result)}.")
-                print(f" > {result[-1]}")
+                for i in range(
+                    -min(len(result), self.config.max_markov_size), 0
+                ):
+                    if result[i:] in self.mappings:
+                        if self.config.debug_mode:
+                            print(
+                                f"Taking mappings from '{result[i:]}'"
+                                f" with i = {i} and result = {result}."
+                            )
 
-            if result[-1] == WORD_END:
-                break
+                        selections |= self.mappings[result[i:]]
+                        selection_amount += 1
 
-        if self.config.debug_mode:
-            print()
+                for sequence in selections.keys():
+                    selections[sequence] /= selection_amount
+
+                if self.config.debug_mode:
+                    print(f"With selections:")
+                    pprint(selections)
+
+                result += self.pick_random_char(selections)
+
+                if self.config.debug_mode and result[-1] != WORD_END:
+                    print(f"Now len(result) = {len(result)}.")
+                    print(f" > {result[-1]}")
+
+                if result[-1] == WORD_END:
+                    break
+
+            if self.config.debug_mode:
+                print()
 
         return result[:-1] if result[-1] == WORD_END else result
