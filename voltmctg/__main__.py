@@ -40,12 +40,12 @@ config.from_args(args)
 mctg: MarkovChainTextGenerator = MarkovChainTextGenerator(config)
 
 
-def sample_input_file(path: str) -> None:
+def sample_file(path: str) -> None:
     mctg.reset_state()
 
     try:
-        with open(path, encoding="utf_8") as sample_file:
-            for line in sample_file:
+        with open(path, encoding="utf_8") as samples_file:
+            for line in samples_file:
                 mctg.sample_text(line)
     except OSError as e:
         print(f"Couldn't open file at '{path}'.")
@@ -70,6 +70,8 @@ def view_debug_details() -> None:
 
 
 def interpreter() -> None:
+    source_path: str = args.file
+    last_texts: list[str] = []
     last_command: str = ""
 
     while True:
@@ -81,12 +83,12 @@ def interpreter() -> None:
                 return
 
             command = last_command
+        else:
+            last_command = command
 
         command_args: list[str] = command.split()
         command = command_args[0]
         del command_args[0]
-
-        last_command = command
 
         if command in ["stop", "quit", "leave", "exit"]:
             break
@@ -94,31 +96,60 @@ def interpreter() -> None:
         if command == "debug":
             view_debug_details()
         elif command.startswith("generate"):
-            amount: int = 1 if not command_args else int(command_args[0])
+            try:
+                amount: int = 1 if not command_args else int(command_args[0])
+            except ValueError:
+                print("Argument for 'generate' must be a number.")
+                continue
+
+            if amount < 1:
+                print("Amount for 'generate' must be greater than 1.")
+                continue
+
+            last_texts = []
 
             for _ in range(amount):
-                print(mctg.generate().title())
+                text: str = mctg.generate().title()
+                last_texts.append(text)
+                print(text)
         elif command == "settings":
             config.show_settings()
         elif command == "resample":
-            target_path: str
-
-            if not command_args:
-                target_path = args.file
-                print("Using source provided at initialization.")
-            else:
-                target_path = command_args[0]
+            if command_args:
+                source_path = command_args[0]
 
             try:
-                sample_input_file(target_path)
+                sample_file(source_path)
             except OSError:
                 pass
+        elif command == "forward":
+            if not last_texts:
+                print("No text to forward.")
+                continue
+
+            for text in last_texts:
+                mctg.sample_text(text)
+
+            try:
+                with open(source_path, "a", encoding="utf_8") as samples_file:
+                    samples_file.write("\n".join(last_texts) + "\n")
+            except OSError:
+                print(f"Couldn't open file at '{source_path}'.")
+                continue
+
+            for text in last_texts:
+                mctg.sample_text(text)
+
+            print(
+                f"Forward-sampled {len(last_texts)} samples"
+                f" to '{source_path}'."
+            )
         else:
             print(f"Command '{command}' not recognized.")
 
 
 try:
-    sample_input_file(args.file)
+    sample_file(args.file)
 except OSError:
     exit()
 
