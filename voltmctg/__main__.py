@@ -94,7 +94,7 @@ def interpreter() -> None:
 
         if command == "debug":
             view_debug_details()
-        elif command.startswith("generate"):
+        elif command == "generate":
             try:
                 amount: int = 1 if not command_args else int(command_args[0])
             except ValueError:
