@@ -1,5 +1,6 @@
 from pprint import pprint
 from argparse import ArgumentParser
+from sys import exit
 
 from voltmctg.config import Config
 from voltmctg.markov_chain_text_generator import MarkovChainTextGenerator
@@ -42,9 +43,13 @@ mctg: MarkovChainTextGenerator = MarkovChainTextGenerator(config)
 def sample_input_file(path: str) -> None:
     mctg.reset_state()
 
-    with open(path, encoding="utf_8") as sample_file:
-        for line in sample_file:
-            mctg.sample_text(line)
+    try:
+        with open(path, encoding="utf_8") as sample_file:
+            for line in sample_file:
+                mctg.sample_text(line)
+    except OSError as e:
+        print(f"Couldn't open file at '{path}'.")
+        raise e
 
     mctg.average_metrics()
 
@@ -65,8 +70,23 @@ def view_debug_details() -> None:
 
 
 def interpreter() -> None:
+    last_command: str = ""
+
     while True:
-        command = input("> ")
+        command: str = input("> ")
+
+        if not command:
+            if not last_command:
+                print("No command provided.")
+                return
+
+            command = last_command
+
+        command_args: list[str] = command.split()
+        command = command_args[0]
+        del command_args[0]
+
+        last_command = command
 
         if command in ["stop", "quit", "leave", "exit"]:
             break
@@ -74,19 +94,32 @@ def interpreter() -> None:
         if command == "debug":
             view_debug_details()
         elif command.startswith("generate"):
-            args: list[str] = command.split()
-            amount: int = 1 if len(args) < 2 else int(args[1])
+            amount: int = 1 if not command_args else int(command_args[0])
 
             for _ in range(amount):
                 print(mctg.generate().title())
         elif command == "settings":
             config.show_settings()
+        elif command == "resample":
+            target_path: str
+
+            if not command_args:
+                target_path = args.file
+                print("Using source provided at initialization.")
+            else:
+                target_path = command_args[0]
+
+            try:
+                sample_input_file(target_path)
+            except OSError:
+                pass
         else:
             print(f"Command '{command}' not recognized.")
 
 
 try:
     sample_input_file(args.file)
-    interpreter()
 except OSError:
-    print("Couldn't open file at path provided in argument 1.")
+    exit()
+
+interpreter()
