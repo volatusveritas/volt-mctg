@@ -44,9 +44,7 @@ def sample_file(path: str) -> None:
     mctg.reset_state()
 
     try:
-        with open(path, encoding="utf_8") as samples_file:
-            for line in samples_file:
-                mctg.sample_text(line)
+        mctg.sample_file(path)
     except OSError as e:
         print(f"Couldn't open file at '{path}'.")
         raise e
@@ -128,8 +126,7 @@ def interpreter() -> None:
                 print("No text to forward.")
                 continue
 
-            for text in last_texts:
-                mctg.sample_text(text)
+            mctg.sample_texts(last_texts)
 
             try:
                 with open(source_path, "a", encoding="utf_8") as samples_file:
@@ -138,8 +135,7 @@ def interpreter() -> None:
                 print(f"Couldn't open file at '{source_path}'.")
                 continue
 
-            for text in last_texts:
-                mctg.sample_text(text)
+            mctg.sample_texts(last_texts)
 
             print(
                 f"Forward-sampled {len(last_texts)} samples"

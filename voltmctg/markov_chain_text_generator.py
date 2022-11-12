@@ -111,6 +111,15 @@ class MarkovChainTextGenerator:
 
         self.samples_analysed += 1
 
+    def sample_texts(self, samples: list[str]) -> None:
+        for sample in samples:
+            self.sample_text(sample)
+
+    def sample_file(self, path: str) -> None:
+        with open(path, encoding="utf_8") as samples_file:
+            for line in samples_file:
+                self.sample_text(line)
+
     def pick_random_char(self, choice_map: ChoiceMap) -> str:
         threshold: float = random.random()
 
