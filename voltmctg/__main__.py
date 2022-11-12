@@ -54,7 +54,8 @@ def sample_file(path: str) -> None:
     mctg.average_metrics()
 
     print(
-        f"Input file sampled ({mctg.samples_analysed} samples analysed)."
+        f"Input file '{path}' sampled"
+        f" ({mctg.samples_analysed} samples analysed)."
     )
 
 
