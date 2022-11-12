@@ -40,23 +40,6 @@ config.from_args(args)
 mctg: MarkovChainTextGenerator = MarkovChainTextGenerator(config)
 
 
-def sample_file(path: str) -> None:
-    mctg.reset_state()
-
-    try:
-        mctg.sample_file(path)
-    except OSError as e:
-        print(f"Couldn't open file at '{path}'.")
-        raise e
-
-    mctg.average_metrics()
-
-    print(
-        f"Input file '{path}' sampled"
-        f" ({mctg.samples_analysed} samples analysed)."
-    )
-
-
 def view_debug_details() -> None:
     print(f"Samples analysed: {mctg.samples_analysed}")
     print(f"Average size: {mctg.average_size}")
@@ -118,15 +101,22 @@ def interpreter() -> None:
                 source_path = command_args[0]
 
             try:
-                sample_file(source_path)
+                mctg.sample_file(source_path)
             except OSError:
-                pass
+                print(f"Couldn't open file at '{source_path}'.")
+
+            print(
+                f"Input file '{source_path}' sampled"
+                f" ({mctg.samples_analysed} samples analysed)."
+            )
         elif command == "forward":
             if not last_texts:
                 print("No text to forward.")
                 continue
 
-            mctg.sample_texts(last_texts)
+            mctg.sample_texts(last_texts, average=True)
+
+            print(f"Sampled {len(last_texts)} samples.")
 
             try:
                 with open(source_path, "a", encoding="utf_8") as samples_file:
@@ -135,19 +125,20 @@ def interpreter() -> None:
                 print(f"Couldn't open file at '{source_path}'.")
                 continue
 
-            mctg.sample_texts(last_texts)
-
-            print(
-                f"Forward-sampled {len(last_texts)} samples"
-                f" to '{source_path}'."
-            )
+            print(f"Forwarded {len(last_texts)} samples to '{source_path}'.")
         else:
             print(f"Command '{command}' not recognized.")
 
 
 try:
-    sample_file(args.file)
+    mctg.sample_file(args.file)
 except OSError:
+    print(f"Couldn't open file at '{args.file}'.")
     exit()
+
+print(
+    f"Input file '{args.file}' sampled"
+    f" ({mctg.samples_analysed} samples analysed)."
+)
 
 interpreter()
