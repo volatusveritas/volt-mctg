@@ -90,10 +90,10 @@ def interpreter() -> None:
 
             last_texts = []
 
-            for _ in range(amount):
+            for i in range(amount):
                 text: str = mctg.generate().title()
                 last_texts.append(text)
-                print(text)
+                print((f"[{i + 1}] " if amount > 1 else "") + text)
         elif command == "settings":
             config.show_settings()
         elif command == "resample":
@@ -114,13 +114,34 @@ def interpreter() -> None:
                 print("No text to forward.")
                 continue
 
-            mctg.sample_texts(last_texts, average=True)
+            targets: list[str]
 
-            print(f"Sampled {len(last_texts)} samples.")
+            if not command_args or command_args[0] == "all":
+                targets = last_texts
+            else:
+                targets = []
+
+                for arg in command_args:
+                    try:
+                        idx: int = int(arg) - 1
+                    except ValueError:
+                        print(
+                            f"Not possible to convert '{arg}' to an integer."
+                        )
+                        continue
+
+                    try:
+                        targets.append(last_texts[idx])
+                    except IndexError:
+                        print(f"Couldn't find item at index '{idx + 1}'.")
+                        continue
+
+            mctg.sample_texts(targets, average=True)
+            print(f"Sampled {len(targets)} samples.")
 
             try:
                 with open(source_path, "a", encoding="utf_8") as samples_file:
-                    samples_file.write("\n".join(last_texts) + "\n")
+                    samples_file.write("\n".join(targets) + "\n")
             except OSError:
                 print(f"Couldn't open file at '{source_path}'.")
                 continue
