@@ -92,7 +92,10 @@ class MarkovChainTextGenerator:
 
         if sample_size < 2:
             if self.config.enable_warnings:
-                print("[Warning] Invalid sample size found. Skipping.")
+                print(
+                    f"[Warning] Invalid sample size found for '{sample}'."
+                    " Skipping."
+                )
 
             return
 
