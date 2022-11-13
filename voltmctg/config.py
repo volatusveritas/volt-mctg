@@ -18,7 +18,7 @@ class Config:
 
     def show_settings(self) -> None:
         print("Current settings:")
-        print(f"    Warnings enabled: {self.enable_warnings}")
-        print(f"    Case sensitive: {self.case_sensitive}")
-        print(f"    Debug mode: {self.debug_mode}")
-        print(f"    Max Markov size: {self.max_markov_size}")
+        print(f"    enable_warnings is {self.enable_warnings}")
+        print(f"    case_sensitive is {self.case_sensitive}")
+        print(f"    debug_mode is {self.debug_mode}")
+        print(f"    max_markov_size is {self.max_markov_size}")

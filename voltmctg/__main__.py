@@ -95,7 +95,44 @@ def interpreter() -> None:
                 last_texts.append(text)
                 print((f"[{i + 1}] " if amount > 1 else "") + text)
         elif command == "settings":
-            config.show_settings()
+            if not command_args:
+                config.show_settings()
+                continue
+
+            if len(command_args) == 1:
+                try:
+                    print(
+                        f"{command_args[0]}"
+                        f" is {getattr(config, command_args[0])}."
+                    )
+                except AttributeError:
+                    print(f"Setting {command_args[0]} not found.")
+
+                continue
+
+            if len(command_args) == 3 and command_args[1] == "=":
+                try:
+                    getattr(config, command_args[0])
+                except AttributeError:
+                    print(f"Setting '{command_args[0]}' not found.")
+                else:
+                    try:
+                        setattr(config, command_args[0], eval(command_args[2]))
+                    except:
+                        print(f"Unable to parse value '{command_args[2]}'.")
+                    else:
+                        print(
+                            f"Setting {command_args[0]}"
+                            f" set to {command_args[2]}."
+                        )
+
+                continue
+
+            for setting in command_args:
+                try:
+                    print(f"{setting} is {getattr(config, setting)}")
+                except AttributeError:
+                    print(f"Setting '{setting}' not found.")
         elif command == "resample":
             if command_args:
                 source_path = command_args[0]
