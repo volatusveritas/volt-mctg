@@ -18,7 +18,9 @@ class MarkovChainTextGenerator:
 
         self.samples_analysed: int
         self.appearances: dict[str, int]
+        self.unweighted_mappings: FollowingTable
         self.mappings: FollowingTable
+        self.unweighted_starting_characters: ChoiceMap
         self.starting_characters: ChoiceMap
         self.min_size: int
         self.max_size: int
@@ -29,7 +31,9 @@ class MarkovChainTextGenerator:
     def reset_state(self) -> None:
         self.samples_analysed = 0
         self.appearances = {}
+        self.unweighted_mappings = {}
         self.mappings = {}
+        self.unweighted_starting_characters = {}
         self.starting_characters = {}
         self.min_size = -1
         self.max_size = -1
@@ -48,37 +52,44 @@ class MarkovChainTextGenerator:
         if not self.config.case_sensitive:
             char = char.lower()
 
-        if not char in self.starting_characters:
-            self.starting_characters[char] = 0.0
+        if not char in self.unweighted_starting_characters:
+            self.unweighted_starting_characters[char] = 0.0
 
-        self.starting_characters[char] += 1.0
+        self.unweighted_starting_characters[char] += 1.0
 
     def consider_segment(self, base: str, sequence: str) -> None:
         if not self.config.case_sensitive:
             base = base.lower()
             sequence = sequence.lower()
 
-        if not base in self.mappings:
+        if not base in self.unweighted_mappings:
             self.appearances[base] = 0
+            self.unweighted_mappings[base] = {}
             self.mappings[base] = {}
 
-        if not sequence in self.mappings[base]:
-            self.mappings[base][sequence] = 0.0
+        if not sequence in self.unweighted_mappings[base]:
+            self.unweighted_mappings[base][sequence] = 0.0
 
         self.appearances[base] += 1
-        self.mappings[base][sequence] += 1.0
+        self.unweighted_mappings[base][sequence] += 1.0
 
     def average_sizes(self) -> None:
         self.average_size /= self.samples_analysed
 
     def average_starting_characters(self) -> None:
-        for char in self.starting_characters.keys():
-            self.starting_characters[char] /= self.samples_analysed
+        for char in self.unweighted_starting_characters.keys():
+            self.starting_characters[char] = (
+                self.unweighted_starting_characters[char]
+                / self.samples_analysed
+            )
 
     def average_mappings(self) -> None:
-        for base in self.mappings.keys():
-            for char in self.mappings[base].keys():
-                self.mappings[base][char] /= self.appearances[base]
+        for base in self.unweighted_mappings.keys():
+            for char in self.unweighted_mappings[base].keys():
+                self.mappings[base][char] = (
+                    self.unweighted_mappings[base][char]
+                    / self.appearances[base]
+                )
 
     def average_metrics(self) -> None:
         self.average_sizes()
