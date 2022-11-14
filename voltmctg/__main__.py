@@ -153,7 +153,7 @@ def interpreter() -> None:
 
             targets: list[str]
 
-            if not command_args or command_args[0] == "all":
+            if not command_args:
                 targets = last_texts
             else:
                 targets = []
